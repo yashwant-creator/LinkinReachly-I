@@ -926,7 +926,7 @@ async function sendFollowUpDm(
 
     const row: TargetRow = {
       profileUrl: match.profileUrl,
-      firstName: match.name?.split(/\s+/)[0],
+      firstName: match.name?.split(/\s+/).find(t => t.length > 0),
       company: match.company
     }
     const sourceExecution = sourceConnectionExecutionForLogEntry(match)

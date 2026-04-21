@@ -580,6 +580,9 @@ async function runLoop(): Promise<void> {
           emit()
         } else if (result.ok) {
           consecutiveFailures = 0
+          // Capture recordId now, before any subsequent awaits, to avoid a race where
+          // the user removes or retries the queue item during the async EXTRACT_JOB_DETAILS call.
+          const hiringTeamRecordId = result.recordId || loadQueue().items.find(i => i.id === pending.id)?.applicationRecordId
           // Post-apply: extract hiring team from the job page for outreach eligibility.
           // After successful Easy Apply, the job page is still loaded behind the confirmation overlay.
           try {
@@ -588,9 +591,8 @@ async function runLoop(): Promise<void> {
             const team = data?.hiringTeam as Array<{ name: string; title?: string; profileUrl?: string }> | undefined
             const filtered = team?.filter((m) => m.name?.length >= 2 && m.profileUrl?.includes('/in/')).slice(0, 5)
             if (filtered?.length) {
-              const recordId = result.recordId || (loadQueue().items.find(i => i.id === pending.id) as { applicationRecordId?: string } | undefined)?.applicationRecordId
-              if (recordId) {
-                updateApplicationRecord(recordId, { hiringTeam: filtered })
+              if (hiringTeamRecordId) {
+                updateApplicationRecord(hiringTeamRecordId, { hiringTeam: filtered })
                 qlog('hiring_team.captured', { itemId: pending.id, count: filtered.length, company: pending.company })
               }
             } else {
